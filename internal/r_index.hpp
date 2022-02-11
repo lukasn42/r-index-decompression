@@ -35,7 +35,7 @@ public:
 	/*
 	 * Build index
 	 */
-	r_index(string &input, bool sais = true){
+	r_index(string &input, bool sais = true, bool log = true){
 
 		this->sais = sais;
 
@@ -46,11 +46,13 @@ public:
 
 		}
 
-		cout << "Text length = " << input.size() << endl << endl;
+		if (log) cout << "Text length = " << input.size() << endl << endl;
 
-		cout << "(1/3) Building BWT and computing SA samples";
-		if(sais) cout << " (SE-SAIS) ... " << flush;
-		else cout << "(DIVSUFSORT) ... " << flush;
+		if (log) {
+			cout << "(1/3) Building BWT and computing SA samples";
+			if(sais) cout << " (SE-SAIS) ... " << flush;
+			else cout << "(DIVSUFSORT) ... " << flush;
+		} 
 
 		//build run-length encoded BWT
 
@@ -60,7 +62,7 @@ public:
 		vector<pair<ulint,ulint> >& samples_first_vec = get<1>(bwt_and_samples);
 		vector<ulint>& samples_last_vec = get<2>(bwt_and_samples);
 
-		cout << "done.\n(2/3) RLE encoding BWT ... " << flush;
+		if (log) cout << "done.\n(2/3) RLE encoding BWT ... " << flush;
 
 		bwt = rle_string_t(bwt_s);
 
@@ -83,7 +85,7 @@ public:
 
 		assert(input.size()+1 == bwt.size());
 
-		cout << "done. " << endl<<endl;
+		if (log) cout << "done. " << endl<<endl;
 
 		r = bwt.number_of_runs();
 
@@ -93,12 +95,14 @@ public:
 		int log_r = bitsize(uint64_t(r));
 		int log_n = bitsize(uint64_t(bwt.size()));
 
-		cout << "Number of BWT equal-letter runs: r = " << r << endl;
-		cout << "Rate n/r = " << double(bwt.size())/r << endl;
-		cout << "log2(r) = " << log2(double(r)) << endl;
-		cout << "log2(n/r) = " << log2(double(bwt.size())/r) << endl << endl;
+		if (log) {
+			cout << "Number of BWT equal-letter runs: r = " << r << endl;
+			cout << "Rate n/r = " << double(bwt.size())/r << endl;
+			cout << "log2(r) = " << log2(double(r)) << endl;
+			cout << "log2(n/r) = " << log2(double(bwt.size())/r) << endl << endl;
 
-		cout << "(3/3) Building phi function ..." << flush;
+			cout << "(3/3) Building phi function ..." << flush;
+		}
 
 		//sort samples of first positions in runs according to text position
 		std::sort(samples_first_vec.begin(), samples_first_vec.end());
@@ -141,7 +145,7 @@ public:
 
 		}
 
-		cout << " done. " << endl<<endl;
+		if (log) cout << " done. " << endl<<endl;
 
 	}
 
@@ -163,7 +167,7 @@ public:
 		ulint pos = 0;
 		for (int i=bwt.size()-2; i>=0; i--) {
 			text[i] = bwt[pos];
-			pos = F[text[i]] + bwt.rank(pos,text[i]);
+			pos = F[(unsigned char) text[i]] + bwt.rank(pos,text[i]);
 		}
 	}
 
