@@ -12,9 +12,9 @@ project (s-rlbwt)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/internal)
-include_directories(~/include) #SDSL headers are here
+include_directories(sdsl/include) #SDSL headers are here
 
-LINK_DIRECTORIES(~/lib) #SDSL lib are here
+LINK_DIRECTORIES(sdsl/lib) #SDSL lib are here
 
 message("Building in ${CMAKE_BUILD_TYPE} mode")
 
