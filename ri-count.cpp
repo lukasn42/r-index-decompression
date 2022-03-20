@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include "internal/r_index.hpp"
 
@@ -10,6 +11,7 @@ using namespace std;
 string check = string();//check occurrences on this text
 
 bool hyb=false;
+std::ofstream measurement_file;
 
 void help(){
 	cout << "ri-count: number of occurrences of the input patterns." << endl << endl;
@@ -17,6 +19,7 @@ void help(){
 	cout << "Usage: ri-count <index> <patterns>" << endl;
 	//cout << "   -h           use hybrid bitvectors instead of elias-fano in both RLBWT and predecessor structures. -h is required "<<endl;
 	//cout << "                if the index was built with -h options enabled."<<endl;
+	cout << "   -l           file to write runtime data to"<<endl;
 	cout << "   <index>      index file (with extension .ri)" << endl;
 	cout << "   <patterns>   file in pizza&chili format containing the patterns." << endl;
 	exit(0);
@@ -29,11 +32,27 @@ void parse_args(char** argv, int argc, int &ptr){
 	string s(argv[ptr]);
 	ptr++;
 
-	/*if(s.compare("-h")==0){
+	if(s.compare("-l")==0){
+
+		if(ptr>=argc-1){
+			cout << "Error: missing parameter after -o option." << endl;
+			help();
+		}
+
+		measurement_file.open(argv[ptr],std::filesystem::exists(argv[ptr]) ? std::ios::app : std::ios::out);
+
+		if (!measurement_file.good()) {
+			cout << "Error: cannot open measurement file" << endl;
+			help();
+		}
+
+		ptr++;
+
+	}/*if(s.compare("-h")==0){
 
 		hyb=true;
 
-	}else*/{
+	}else*/else{
 
 		cout << "Error: unknown option " << s << endl;
 		help();
@@ -131,6 +150,9 @@ void count(std::ifstream& in, string patterns){
 	cout << "Search time : " << (double)search/n << " milliseconds/pattern (total: " << n << " patterns)" << endl;
 	cout << "Search time : " << (double)search/occ_tot << " milliseconds/occurrence (total: " << occ_tot << " occurrences)" << endl;
 
+	if (measurement_file.is_open()) {
+		measurement_file << " time=" << search << endl;
+	}
 }
 
 int main(int argc, char** argv){
@@ -147,6 +169,11 @@ int main(int argc, char** argv){
 	string patt_file(argv[ptr+1]);
 
 	std::ifstream in(idx_file);
+
+	string text_file_name = idx_file.substr(idx_file.find_last_of("/\\") + 1);
+	if (measurement_file.is_open()) {
+		measurement_file << "RESULT type=ri_orig name=" << text_file_name;
+	}
 
 	bool fast;
 

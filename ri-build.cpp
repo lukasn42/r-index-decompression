@@ -1,4 +1,9 @@
 #include <iostream>
+#include <filesystem>
+
+extern "C" {
+	#include <malloc_count.h>
+}
 
 #include "internal/r_index.hpp"
 #include "utils.hpp"
@@ -14,6 +19,7 @@ bool sais=true;
 ulint T = 0;//Build fast index with SA rate = T
 bool fast = false;//build fast index
 bool hyb = false; //use hybrid bitvectors instead of sd_vectors?
+std::ofstream measurement_file;
 
 void help(){
 	cout << "ri-build: builds the r-index. Extension .ri is automatically added to output index file" << endl << endl;
@@ -27,6 +33,7 @@ void help(){
 	//cout << "                        BWT equal-letter run. O(r*T) words of space, O(occ(log(n/r)/T) + log(n/r))-time locate. "<<endl;
 	cout << "   -divsufsort          use divsufsort algorithm to build the BWT (fast, 7.5n Bytes of RAM). By default,"<<endl;
 	cout << "                        SE-SAIS is used (about 4 time slower than divsufsort, 4n Bytes of RAM)."<<endl;
+	cout << "   -l                   file to write runtime and memory usage data to"<<endl;
 	cout << "   <input_file_name>    input text file." << endl;
 	exit(0);
 }
@@ -51,6 +58,22 @@ void parse_args(char** argv, int argc, int &ptr){
 	}else if(s.compare("-divsufsort")==0){
 
 		sais = false;
+
+	}else if(s.compare("-l")==0){
+
+		if(ptr>=argc-1){
+			cout << "Error: missing parameter after -o option." << endl;
+			help();
+		}
+
+		measurement_file.open(argv[ptr],std::filesystem::exists(argv[ptr]) ? std::ios::app : std::ios::out);
+
+		if (!measurement_file.good()) {
+			cout << "Error: cannot open measurement file" << endl;
+			help();
+		}
+
+		ptr++;
 
 	}/*else if(s.compare("-h")==0){
 
@@ -84,8 +107,6 @@ int main(int argc, char** argv){
     using std::chrono::high_resolution_clock;
     using std::chrono::duration_cast;
     using std::chrono::duration;
-
-    auto t1 = high_resolution_clock::now();
 
 	//parse options
 
@@ -125,8 +146,18 @@ int main(int argc, char** argv){
 	string path = string(out_basename).append(".ri");
 	std::ofstream out(path);
 
+	string text_file_name = out_basename.substr(out_basename.find_last_of("/\\") + 1);
+
+	if (measurement_file.is_open()) {
+		measurement_file << "RESULT type=ri_orig name=" << text_file_name;
+	}
+
 	//save flag storing whether index is fast or small
 	out.write((char*)&fast,sizeof(fast));
+
+	
+    auto t1 = high_resolution_clock::now();
+	malloc_count_reset_peak();
 
 
 	if(hyb){
@@ -145,6 +176,10 @@ int main(int argc, char** argv){
 	auto t2 = high_resolution_clock::now();
 	ulint total = duration_cast<duration<double, std::ratio<1>>>(t2 - t1).count();
 	cout << "Build time : " << get_time(total) << endl;
+
+	if (measurement_file.is_open()) {
+		measurement_file << " memory_usage=" << malloc_count_peak()/1000000 << " time_tot=" << total << endl;
+	}
 
 
 	out.close();

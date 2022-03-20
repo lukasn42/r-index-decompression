@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include "internal/r_index.hpp"
 
@@ -10,6 +11,7 @@ using namespace std;
 string check = string();//check occurrences on this text
 bool hyb=false;
 string ofile;
+std::ofstream measurement_file;
 
 void help(){
 	cout << "ri-revert: reconstruct the original file." << endl << endl;
@@ -17,6 +19,7 @@ void help(){
 	cout << "Usage: ri-locate [options] <index> <patterns>" << endl;
 	//cout << "   -h           use hybrid bitvectors instead of elias-fano in both RLBWT and predecessor structures. -h is required "<<endl;
 	//cout << "                if the index was built with -h options enabled."<<endl;
+	cout << "   -l           file to write runtime data to"<<endl;
 	cout << "   -o <ofile>   output file" << endl;
 	cout << "   <index>      index file (with extension .ri)" << endl;
 	exit(0);
@@ -29,7 +32,23 @@ void parse_args(char** argv, int argc, int &ptr){
 	string s(argv[ptr]);
 	ptr++;
 
-	if(s.compare("-o")==0){
+	if(s.compare("-l")==0){
+
+		if(ptr>=argc-1){
+			cout << "Error: missing parameter after -o option." << endl;
+			help();
+		}
+
+		measurement_file.open(argv[ptr],std::filesystem::exists(argv[ptr]) ? std::ios::app : std::ios::out);
+
+		if (!measurement_file.good()) {
+			cout << "Error: cannot open measurement file" << endl;
+			help();
+		}
+
+		ptr++;
+
+	} else if(s.compare("-o")==0){
 
 		if(ptr>=argc-1){
 			cout << "Error: missing parameter after -o option." << endl;
@@ -87,6 +106,10 @@ void revert(std::ifstream& in){
 	uint64_t revert = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count();
 	cout << "Revert time : " << revert << " milliseconds" << endl;
 
+	if (measurement_file.is_open()) {
+		measurement_file << " time=" << revert << endl;
+	}
+
 	out << text_orig;
 }
 
@@ -104,6 +127,11 @@ int main(int argc, char** argv){
 	string idx_file(argv[ptr]);
 
 	std::ifstream in(idx_file);
+
+	string text_file_name = idx_file.substr(idx_file.find_last_of("/\\") + 1);
+	if (measurement_file.is_open()) {
+		measurement_file << "RESULT type=ri_orig name=" << text_file_name;
+	}
 
 	bool fast;
 

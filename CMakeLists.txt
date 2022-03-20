@@ -10,41 +10,41 @@ endif()
 
 project (s-rlbwt)
 
+# malloc_count
+include_directories(external/malloc_count)
+add_library(malloc_count STATIC external/malloc_count/malloc_count.c)
+target_link_libraries(malloc_count dl)
+
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/internal)
-include_directories(sdsl/include) #SDSL headers are here
+include_directories(${PROJECT_SOURCE_DIR}/sdsl/include) #SDSL headers are here
 
-LINK_DIRECTORIES(sdsl/lib) #SDSL lib are here
+LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/sdsl/lib) #SDSL lib are here
 
 message("Building in ${CMAKE_BUILD_TYPE} mode")
 
-set(CMAKE_CXX_FLAGS "--std=c++11")
+set(CMAKE_CXX_FLAGS "--std=c++17")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -ggdb -Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
 
 add_executable(ri-build ri-build.cpp)
-TARGET_LINK_LIBRARIES(ri-build sdsl)
+TARGET_LINK_LIBRARIES(ri-build sdsl malloc_count)
 TARGET_LINK_LIBRARIES(ri-build divsufsort)
 TARGET_LINK_LIBRARIES(ri-build divsufsort64)
 
 add_executable(ri-locate ri-locate.cpp)
-TARGET_LINK_LIBRARIES(ri-locate sdsl)
+TARGET_LINK_LIBRARIES(ri-locate sdsl malloc_count)
 TARGET_LINK_LIBRARIES(ri-locate divsufsort)
 TARGET_LINK_LIBRARIES(ri-locate divsufsort64)
 
 add_executable(ri-count ri-count.cpp)
-TARGET_LINK_LIBRARIES(ri-count sdsl)
+TARGET_LINK_LIBRARIES(ri-count sdsl malloc_count)
 TARGET_LINK_LIBRARIES(ri-count divsufsort)
 TARGET_LINK_LIBRARIES(ri-count divsufsort64)
 
 add_executable(ri-revert ri-revert.cpp)
-TARGET_LINK_LIBRARIES(ri-revert sdsl)
+TARGET_LINK_LIBRARIES(ri-revert sdsl malloc_count)
 TARGET_LINK_LIBRARIES(ri-revert divsufsort)
 TARGET_LINK_LIBRARIES(ri-revert divsufsort64)
-
-#add_executable(ri-space ri-space.cpp)
-#TARGET_LINK_LIBRARIES(ri-space sdsl)
-#TARGET_LINK_LIBRARIES(ri-space divsufsort)
-#TARGET_LINK_LIBRARIES(ri-space divsufsort64)
