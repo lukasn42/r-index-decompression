@@ -1,5 +1,4 @@
 #include <iostream>
-#include <filesystem>
 
 #include "internal/r_index.hpp"
 
@@ -7,6 +6,20 @@
 
 using namespace ri;
 using namespace std;
+
+int FileExists(char *path)
+{
+    struct stat fileStat; 
+    if ( stat(path, &fileStat) )
+    {
+        return 0;
+    }
+    if ( !S_ISREG(fileStat.st_mode) )
+    {
+        return 0;
+    }
+    return 1;
+}
 
 string check = string();//check occurrences on this text
 bool hyb=false;
@@ -51,7 +64,7 @@ void parse_args(char** argv, int argc, int &ptr){
 			help();
 		}
 
-		measurement_file.open(argv[ptr],std::filesystem::exists(argv[ptr]) ? std::ios::app : std::ios::out);
+		measurement_file.open(argv[ptr],FileExists(argv[ptr]) ? std::ios::app : std::ios::out);
 
 		if (!measurement_file.good()) {
 			cout << "Error: cannot open measurement file" << endl;
@@ -137,6 +150,8 @@ void locate(std::ifstream& in, string patterns){
 
 	ulint occ_tot=0;
 
+	int64_t execution_time=0;
+
 	//extract patterns from file and search them in the index
 	for(ulint i=0;i<n;++i){
 
@@ -156,7 +171,13 @@ void locate(std::ifstream& in, string patterns){
 
 		//cout << "locating " << idx.occ(p) << " occurrences of "<< p << " ... " << flush;
 
+		auto t_before = high_resolution_clock::now();
+
 		auto OCC = idx.locate_all(p);	//occurrences
+
+		auto t_after = high_resolution_clock::now();
+
+		execution_time += std::chrono::duration_cast<std::chrono::microseconds>(t_after - t_before).count();
 
 		if(ofile.compare(string())!=0){
 
@@ -229,7 +250,7 @@ void locate(std::ifstream& in, string patterns){
 	cout << "Search time : " << (double)search/occ_tot << " milliseconds/occurrence (total: " << occ_tot << " occurrences)" << endl;
 
 	if (measurement_file.is_open()) {
-		measurement_file << " time=" << search << endl;
+		measurement_file << " time=" << execution_time/1000 << endl;
 	}
 }
 

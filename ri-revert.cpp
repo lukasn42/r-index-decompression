@@ -1,5 +1,4 @@
 #include <iostream>
-#include <filesystem>
 
 #include "internal/r_index.hpp"
 
@@ -7,6 +6,20 @@
 
 using namespace ri;
 using namespace std;
+
+int FileExists(char *path)
+{
+    struct stat fileStat; 
+    if ( stat(path, &fileStat) )
+    {
+        return 0;
+    }
+    if ( !S_ISREG(fileStat.st_mode) )
+    {
+        return 0;
+    }
+    return 1;
+}
 
 string check = string();//check occurrences on this text
 bool hyb=false;
@@ -39,7 +52,7 @@ void parse_args(char** argv, int argc, int &ptr){
 			help();
 		}
 
-		measurement_file.open(argv[ptr],std::filesystem::exists(argv[ptr]) ? std::ios::app : std::ios::out);
+		measurement_file.open(argv[ptr],FileExists(argv[ptr]) ? std::ios::app : std::ios::out);
 
 		if (!measurement_file.good()) {
 			cout << "Error: cannot open measurement file" << endl;
