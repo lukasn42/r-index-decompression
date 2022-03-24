@@ -26,6 +26,20 @@ int FileExists(char *path)
     return 1;
 }
 
+int64_t time_diff_ms(std::chrono::_V2::system_clock::time_point t1, std::chrono::_V2::system_clock::time_point t2) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
+}
+
+int get_file_size(std::string filename)
+{
+    FILE *p_file = NULL;
+    p_file = fopen(filename.c_str(),"rb");
+    fseek(p_file,0,SEEK_END);
+    int size = ftell(p_file);
+    fclose(p_file);
+    return size;
+}
+
 string out_basename=string();
 string input_file=string();
 int sa_rate = 512;
@@ -192,9 +206,8 @@ int main(int argc, char** argv){
 	cout << "Build time : " << get_time(total) << endl;
 
 	if (measurement_file.is_open()) {
-		measurement_file << " memory_usage=" << malloc_count_peak()/1000000 << " time_tot=" << total << endl;
+		measurement_file << " memory_usage=" << malloc_count_peak()/1000000 << " time_tot=" << time_diff_ms(t1,t2) << " file_size=" << get_file_size(path)/1000 << endl;
 	}
-
 
 	out.close();
 
