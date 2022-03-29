@@ -187,6 +187,8 @@ int main(int argc, char** argv){
     auto t1 = high_resolution_clock::now();
 	malloc_count_reset_peak();
 
+	size_t index_size = malloc_count_current();
+
 
 	if(hyb){
 
@@ -196,17 +198,20 @@ int main(int argc, char** argv){
 	}else{
 
 		auto idx = r_index<>(input,sais);
+		index_size = malloc_count_current()-index_size;
+
 		idx.serialize(out);
 
 	}
 
-
 	auto t2 = high_resolution_clock::now();
 	ulint total = duration_cast<duration<double, std::ratio<1>>>(t2 - t1).count();
 	cout << "Build time : " << get_time(total) << endl;
-
+	cout << "Index size in RAM : " << (index_size)/1000 << endl;
+	cout << "Indexfile size : " << get_file_size(path)/1000 << endl;
+	
 	if (measurement_file.is_open()) {
-		measurement_file << " memory_usage=" << malloc_count_peak()/1000000 << " time_tot=" << time_diff_ms(t1,t2) << " file_size=" << get_file_size(path)/1000 << endl;
+		measurement_file << " memory_usage=" << malloc_count_peak()/1000000 << " time_tot=" << time_diff_ms(t1,t2) << " file_size=" << get_file_size(path)/1000 << " index_size=" << (index_size)/1000 << endl;
 	}
 
 	out.close();

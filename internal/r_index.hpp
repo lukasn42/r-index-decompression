@@ -39,11 +39,27 @@ public:
 
 		this->sais = sais;
 
-		if(contains_reserved_chars(input)){
-
-			cout << "Error: input string contains one of the reserved characters 0x0, 0x1" << endl;
-			exit(1);
-
+		char_shift = 0;
+		unsigned char min_char = 255;
+		unsigned char max_char = 0;
+		for (ulint i=0; i<input.size(); i++) {
+			if ((unsigned char) input[i] < min_char) {
+				min_char = input[i];
+			}
+			if ((unsigned char) input[i] > max_char) {
+				max_char = input[i];
+			}
+		}
+		if (min_char < 2) {
+			if (max_char - min_char + 1 > 253) {
+				cout << "Error: the char range of the input string is too big (> 253)" << endl;
+				return;
+			} else {
+				char_shift = 2-min_char;
+				for (ulint i=0; i<input.size(); i++) {
+					input[i] += char_shift;
+				}
+			}
 		}
 
 		if (log) cout << "Text length = " << input.size() << endl << endl;
@@ -78,10 +94,6 @@ public:
 
 		for(ulint i=1;i<256;++i)
 			F[i] += F[i-1];
-
-		for(ulint i=0;i<bwt_s.size();++i)
-			if(bwt_s[i]==TERMINATOR)
-				terminator_position = i;
 
 		assert(input.size()+1 == bwt.size());
 
@@ -147,6 +159,10 @@ public:
 
 		if (log) cout << " done. " << endl<<endl;
 
+	}
+
+	unsigned char ret_char_shift() {
+		return char_shift;
 	}
 
 	/*
@@ -394,6 +410,9 @@ public:
 		assert(F.size()>0);
 		assert(bwt.size()>0);
 
+		out.write((char*)&char_shift,sizeof(unsigned char));
+		w_bytes += sizeof(unsigned char);
+
 		out.write((char*)&terminator_position,sizeof(terminator_position));
 		out.write((char*)F.data(),256*sizeof(ulint));
 
@@ -413,6 +432,8 @@ public:
 	 * \param in the istream
 	 */
 	void load(std::istream& in) {
+
+		in.read((char*)&char_shift,sizeof(unsigned char));
 
 		in.read((char*)&terminator_position,sizeof(terminator_position));
 
@@ -641,16 +662,6 @@ private:
 
 	}
 
-	static bool contains_reserved_chars(string &s){
-
-		for(auto c : s)
-			if(c == 0 or c == 1)
-				return true;
-
-		return false;
-
-	}
-
 	static const uchar TERMINATOR = 1;
 
 	bool sais = true;
@@ -665,6 +676,7 @@ private:
 	rle_string_t bwt;
 	ulint terminator_position = 0;
 	ulint r = 0;//number of BWT runs
+	unsigned char char_shift;
 
 
 	//the predecessor structure on positions corresponding to first chars in BWT runs
