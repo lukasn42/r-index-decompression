@@ -39,27 +39,39 @@ public:
 
 		this->sais = sais;
 
-		char_shift = 0;
-		unsigned char min_char = 255;
-		unsigned char max_char = 0;
+		chars_mapped = false;
+		map_char = std::vector<unsigned char>(256,0);
 		for (ulint i=0; i<input.size(); i++) {
-			if ((unsigned char) input[i] < min_char) {
-				min_char = input[i];
-			}
-			if ((unsigned char) input[i] > max_char) {
-				max_char = input[i];
-			}
+			map_char[(unsigned char) input[i]] = 1;
 		}
-		if (min_char < 2) {
-			if (max_char - min_char + 1 > 253) {
-				cout << "Error: the char range of the input string is too big (> 253)" << endl;
+		if (map_char[0] || map_char[1]) {
+			uint8_t num_dist_chars = 0;
+			for (uint16_t i=0; i<256; i++) {
+				num_dist_chars += map_char[i];
+			}
+			if (num_dist_chars > 253) {
+				cout << "Error: the input contains more than 253 distinct characters" << endl;
 				return;
-			} else {
-				char_shift = 2-min_char;
-				for (ulint i=0; i<input.size(); i++) {
-					input[i] += char_shift;
+			}
+			chars_mapped = true;
+			map_char_rev = std::vector<unsigned char>(256,0);
+			uint8_t j = 2;
+			for (uint16_t i=0; i<256; i++) {
+				if (map_char[i] != 0) {
+					map_char[i] = j;
+					j++;
 				}
 			}
+			for (uint16_t i=0; i<256; i++) {
+				if (map_char[i] != 0) {
+					map_char_rev[map_char[i]] = i;
+				}
+			}
+			for (ulint i=0; i<input.size()-1; i++) {
+				input[i] = map_char[(unsigned char) input[i]];
+			}
+		} else {
+			map_char.clear();
 		}
 
 		if (log) cout << "Text length = " << input.size() << endl << endl;
@@ -161,8 +173,16 @@ public:
 
 	}
 
-	unsigned char ret_char_shift() {
-		return char_shift;
+	bool ret_chars_mapped() {
+		return chars_mapped;
+	}
+
+	unsigned char ret_map_char(unsigned char c) {
+		return map_char[c];
+	}
+
+	unsigned char ret_map_char_rev(unsigned char c) {
+		return map_char_rev[c];
 	}
 
 	/*
@@ -410,8 +430,16 @@ public:
 		assert(F.size()>0);
 		assert(bwt.size()>0);
 
-		out.write((char*)&char_shift,sizeof(unsigned char));
-		w_bytes += sizeof(unsigned char);
+		out.write((char*)&chars_mapped,sizeof(bool));
+		w_bytes += sizeof(bool);
+
+		if (chars_mapped) {
+			out.write((char*)&map_char[0],256*sizeof(unsigned char));
+			w_bytes += 256*sizeof(unsigned char);
+
+			out.write((char*)&map_char_rev[0],256*sizeof(unsigned char));
+			w_bytes += 256*sizeof(unsigned char);
+		}
 
 		out.write((char*)&terminator_position,sizeof(terminator_position));
 		out.write((char*)F.data(),256*sizeof(ulint));
@@ -433,7 +461,15 @@ public:
 	 */
 	void load(std::istream& in) {
 
-		in.read((char*)&char_shift,sizeof(unsigned char));
+		in.read((char*)&chars_mapped,sizeof(bool));
+
+		if (chars_mapped) {
+			map_char = std::vector<unsigned char>(256);
+			in.read((char*)&map_char[0],256*sizeof(unsigned char));
+
+			map_char_rev = std::vector<unsigned char>(256);
+			in.read((char*)&map_char_rev[0],256*sizeof(unsigned char));
+		}
 
 		in.read((char*)&terminator_position,sizeof(terminator_position));
 
@@ -676,7 +712,8 @@ private:
 	rle_string_t bwt;
 	ulint terminator_position = 0;
 	ulint r = 0;//number of BWT runs
-	unsigned char char_shift;
+	bool chars_mapped;
+	std::vector<unsigned char> map_char,map_char_rev;
 
 
 	//the predecessor structure on positions corresponding to first chars in BWT runs
